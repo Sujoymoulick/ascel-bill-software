@@ -180,6 +180,8 @@ pub struct Invoice {
     pub number: Option<String>,
     #[serde(default)]
     pub template: Option<InvoiceTemplate>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub print_settings: Option<PrintSettings>,
     #[serde(default)]
     pub currency: Currency,
     pub date: String,
@@ -215,6 +217,8 @@ pub struct Dashboard {
     pub receivables: i64,
     pub tax: i64,
 }
+
+pub const REORDER_THRESHOLD: i64 = 5_000;
 
 pub const STATES: &[(&str, &str)] = &[
     ("01", "Jammu and Kashmir"),
@@ -561,12 +565,14 @@ pub fn calculate(
     } else {
         None
     };
-    let template = input.template.unwrap_or(seller.print_settings.template);
-    seller.print_settings = PrintSettings::default();
+    let mut print_settings = std::mem::take(&mut seller.print_settings);
+    let template = input.template.unwrap_or(print_settings.template);
+    print_settings.template = template;
     seller.allow_usd = false;
     Ok(Invoice {
         number: None,
         template: Some(template),
+        print_settings: Some(print_settings),
         currency: input.currency,
         date: input.date.clone(),
         seller,

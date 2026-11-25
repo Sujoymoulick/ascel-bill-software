@@ -11,7 +11,8 @@
 
   let dialog: HTMLDialogElement;
   let copy = $state('Recipient copy');
-  let template = $state<InvoiceTemplate>(untrack(() => invoice.template || settings.template));
+  let layoutSettings = $derived(invoice.printSettings ?? settings);
+  let template = $state<InvoiceTemplate>(untrack(() => invoice.template ?? layoutSettings.template));
   let compact = $derived(template === 'laser-a5' || template === 'laser-a6');
   let printError = $state('');
   let t = $derived(translator($locale));
@@ -47,7 +48,7 @@
     </fieldset>
     <p class="help">{invoiceTemplates[template].size}{invoice.number && compact ? ` · ${t('Use matching paper and print at actual size.')}` : ''}</p>
   </div>
-  <article class={`invoice-paper paper-${template} accent-${settings.accent}`}>
+  <article class={`invoice-paper paper-${template} accent-${layoutSettings.accent}`}>
     {@render paper()}
   </article>
   {#if invoice.blockedReason}<p class="error dialog-message" role="alert">{t(invoice.blockedReason)}</p>{/if}
@@ -68,12 +69,12 @@
 </dialog>
 
 {#if invoice.number}
-  <article class={`invoice-paper print-only paper-${template} accent-${settings.accent}`} aria-hidden="true">{@render paper()}</article>
+  <article class={`invoice-paper print-only paper-${template} accent-${layoutSettings.accent}`} aria-hidden="true">{@render paper()}</article>
 {/if}
 
 {#snippet paper()}
     <header class="paper-header">
-      <div>{#if settings.logo}<img class="paper-logo" src={settings.logo} alt="">{/if}
+      <div>{#if layoutSettings.logo}<img class="paper-logo" src={layoutSettings.logo} alt="">{/if}
         <h2>{invoice.seller.name}</h2><p class="address">{invoice.seller.address}</p>
         <p>{t(stateLabel(invoice.seller.state, states))}</p>
         {#if invoice.seller.gstin}<p>GSTIN {invoice.seller.gstin}</p>{/if}
@@ -88,7 +89,7 @@
       <div><strong>{t('Bill to')}</strong><p>{invoice.customer?.name || t('Walk-in customer')}</p>
         {#if invoice.customer?.address}<p class="address">{invoice.customer.address}</p>{/if}
         {#if invoice.customer?.gstin}<p>GSTIN {invoice.customer.gstin}</p>{/if}
-        {#if settings.showContacts && (invoice.customer?.phone || invoice.customer?.email)}
+        {#if layoutSettings.showContacts && (invoice.customer?.phone || invoice.customer?.email)}
           <p class="address">{[invoice.customer?.phone, invoice.customer?.email].filter(Boolean).join(' · ')}</p>
         {/if}
       </div>
@@ -101,7 +102,7 @@
         <tbody>{#each invoice.lines as line}
           <tr><td>{line.name}<small>{[line.hsn, compact ? `${money(line.price, invoice.currency, $locale)}/${line.unit}` : ''].filter(Boolean).join(' · ')}</small>
               {#if compact && line.discount}<small>{t('Discount')} {money(line.discount, invoice.currency, $locale)}</small>{/if}
-            </td><td class="numeric">{formatQuantity(line.quantity, $locale)} {line.unit}</td>
+            </td><td class="numeric">{formatQuantity(line.quantity, $locale)}{#if compact}<small class="paper-unit">{line.unit}</small>{:else} {line.unit}{/if}</td>
             {#if !compact}<td class="numeric">{money(line.price, invoice.currency, $locale)}</td><td class="numeric">{money(line.discount, invoice.currency, $locale)}</td>{/if}
             <td class="numeric">{money(line.taxable, invoice.currency, $locale)}</td>
             {#if invoice.seller.gstin}<td class="numeric">{formatCount(line.rate / 100, $locale)}%<small>{money(line.cgst + line.localGst + line.igst, invoice.currency, $locale)}</small></td>{/if}
@@ -109,23 +110,25 @@
         {/each}</tbody>
       </table>
     </div>
-    <dl class="paper-totals">
-      <div><dt>{t('Subtotal')}</dt><dd>{money(invoice.totals.taxable, invoice.currency, $locale)}</dd></div>
-      {#if invoice.seller.gstin}
-        {#if invoice.seller.state === invoice.place}
-          <div><dt>CGST</dt><dd>{money(invoice.totals.cgst, invoice.currency, $locale)}</dd></div>
-          <div><dt>{invoice.localTaxName}</dt><dd>{money(invoice.totals.localGst, invoice.currency, $locale)}</dd></div>
-        {:else}
-          <div><dt>IGST</dt><dd>{money(invoice.totals.igst, invoice.currency, $locale)}</dd></div>
+    <div class="paper-summary">
+      <dl class="paper-totals">
+        <div><dt>{t('Subtotal')}</dt><dd>{money(invoice.totals.taxable, invoice.currency, $locale)}</dd></div>
+        {#if invoice.seller.gstin}
+          {#if invoice.seller.state === invoice.place}
+            <div><dt>CGST</dt><dd>{money(invoice.totals.cgst, invoice.currency, $locale)}</dd></div>
+            <div><dt>{invoice.localTaxName}</dt><dd>{money(invoice.totals.localGst, invoice.currency, $locale)}</dd></div>
+          {:else}
+            <div><dt>IGST</dt><dd>{money(invoice.totals.igst, invoice.currency, $locale)}</dd></div>
+          {/if}
         {/if}
-      {/if}
-      <div class="total"><dt>{t('Total')}</dt><dd>{money(invoice.totals.total, invoice.currency, $locale)}</dd></div>
-    </dl>
-    <footer class="paper-footer">
-      <div><p>{t('Payment')} · {t(invoice.payment)}{settings.showPaymentReference && invoice.reference ? ` · ${invoice.reference}` : ''}</p>
-        {#if invoice.seller.gstin}<p>{t('Reverse charge · No')}</p>{/if}
-      </div>
-      <p class="signature">{t('Authorised signature')}</p>
-    </footer>
-    {#if settings.footer}<p class="paper-note">{settings.footer}</p>{/if}
+        <div class="total"><dt>{t('Total')}</dt><dd>{money(invoice.totals.total, invoice.currency, $locale)}</dd></div>
+      </dl>
+      <footer class="paper-footer">
+        <div><p>{t('Payment')} · {t(invoice.payment)}{layoutSettings.showPaymentReference && invoice.reference ? ` · ${invoice.reference}` : ''}</p>
+          {#if invoice.seller.gstin}<p>{t('Reverse charge · No')}</p>{/if}
+        </div>
+        <p class="signature">{t('Authorised signature')}</p>
+      </footer>
+      {#if layoutSettings.footer}<p class="paper-note">{layoutSettings.footer}</p>{/if}
+    </div>
 {/snippet}

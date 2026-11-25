@@ -41,7 +41,7 @@
   </header>
   <form onsubmit={submit}>
     <div class="stock-form">
-      <p class="stock-current"><span>{t('Current stock')}</span><strong>{item.stock === null ? t('Not tracked') : `${qty(item.stock, $locale)} ${t(item.unit)}`}</strong></p>
+      <p class="stock-current"><span>{t('Current stock')}</span><strong>{item.stock === null ? t('Not tracked') : `${qty(item.stock, $locale)} ${item.unit}`}</strong></p>
       <label>{t('Stock action')}
         <select bind:value={mode} onchange={() => { amount = undefined; error = ''; }}>
           <option value="receive">{t('Receive stock')}</option>
@@ -52,7 +52,7 @@
         <input type="number" min={mode === 'receive' ? '0.001' : '0'} max="1000000" step="0.001" bind:value={amount} required>
       </label>
       <label>{t('Note (optional)')} <input maxlength="180" bind:value={note}></label>
-      {#if next !== null}<p class="stock-current"><span>{t('Stock after update')}</span><strong>{qty(next, $locale)} {t(item.unit)}</strong></p>{/if}
+      {#if next !== null}<p class="stock-current"><span>{t('Stock after update')}</span><strong>{qty(next, $locale)} {item.unit}</strong></p>{/if}
       {#if error}<p class="error" role="alert">{t(error)}</p>{/if}
     </div>
     <footer class="dialog-actions">

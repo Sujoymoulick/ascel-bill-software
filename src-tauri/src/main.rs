@@ -107,8 +107,12 @@ async fn import_customer_csv(
 }
 
 #[tauri::command]
-fn list_items(state: State<'_, Workstation>, query: &str) -> Result<Vec<Item>> {
-    store::items(&*state.lock()?, query)
+fn list_items(
+    state: State<'_, Workstation>,
+    query: &str,
+    needs_attention: Option<bool>,
+) -> Result<Vec<Item>> {
+    store::items(&*state.lock()?, query, needs_attention.unwrap_or(false))
 }
 
 #[tauri::command]

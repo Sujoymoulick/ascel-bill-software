@@ -12,8 +12,8 @@
     loading: boolean;
     canViewUsd: boolean;
     onnew: () => void;
-    oncustomers: () => void;
-    onitems: () => void;
+    oncustomers: (mode?: 'add') => void;
+    onitems: (mode?: 'add' | 'attention') => void;
     onstock: (id: string) => void;
   } = $props();
 
@@ -178,7 +178,9 @@
       <section class="overview-panel" aria-labelledby="overview-inventory-title">
         <header class="overview-panel-heading">
           <div><h2 id="overview-inventory-title">{t('inventory')}</h2><p>{t('itemCount', { count: formattedCount(data.itemCount) })}</p></div>
-          <button type="button" onclick={onitems}>{t('openItems')}</button>
+          <button type="button" onclick={() => onitems(data.itemCount ? undefined : 'add')}>
+            {t(data.itemCount ? 'openItems' : 'addItem')}
+          </button>
         </header>
 
         {#if data.itemCount}
@@ -200,7 +202,9 @@
       <section class="overview-panel" aria-labelledby="overview-customers-title">
         <header class="overview-panel-heading">
           <div><h2 id="overview-customers-title">{t('customers')}</h2><p>{t('customerCount', { count: formattedCount(data.customerCount) })}</p></div>
-          <button type="button" onclick={oncustomers}>{t('openCustomers')}</button>
+          <button type="button" onclick={() => oncustomers(data.customerCount ? undefined : 'add')}>
+            {t(data.customerCount ? 'openCustomers' : 'addCustomer')}
+          </button>
         </header>
         {#if data.customerCount}
           {@const active = Math.min(data.activeCustomerCount, data.customerCount)}
@@ -209,7 +213,7 @@
             {#if data.customerCount > active}<span class="untracked" style:flex-grow={data.customerCount - active}></span>{/if}
           </div>
           <dl class="overview-breakdown">
-            <div><dt><i class="healthy" aria-hidden="true"></i>{t('activeCustomers')}</dt><dd>{formattedCount(data.activeCustomerCount)}</dd></div>
+            <div><dt><i class="healthy" aria-hidden="true"></i>{t('activeCustomers', { count: formattedCount(data.periodDays) })}</dt><dd>{formattedCount(data.activeCustomerCount)}</dd></div>
             <div><dt><i class="untracked" aria-hidden="true"></i>{t('otherCustomers')}</dt><dd>{formattedCount(data.customerCount - active)}</dd></div>
           </dl>
         {:else}
@@ -241,7 +245,7 @@
           {/each}
         </ul>
         {#if data.lowStockCount + data.outOfStockCount > data.stockAlerts.length}
-          <button type="button" class="text-button overview-more" onclick={onitems}>
+          <button type="button" class="text-button overview-more" onclick={() => onitems('attention')}>
             {t('stockRemainder', { count: formattedCount(data.lowStockCount + data.outOfStockCount - data.stockAlerts.length) })}
           </button>
         {/if}

@@ -31,3 +31,23 @@ Five established tools commonly evaluated for Indian billing and inventory are p
 6. Keep paper and styling settings accessible from billing. Provide visible paper-size selection and a preview before printing. Reopen a saved invoice with the document's recorded details, even when the business later changes its settings. Local backup and recovery and fast keyboard entry are practical ways to support busy retail counters.
 
 The comparison guides interaction choices and feature sequencing. Public interfaces and feature documentation do not provide product-wide offline, accessibility, or low-end performance test results.
+
+## Ascel Bill 0.3 release review
+
+| Workflow | Ascel Bill coverage | Remaining work |
+| --- | --- | --- |
+| Local sales reporting | Overview shows issued sales, counts, credit sales, and GST for 7, 14, and 30 days in each invoice currency. Daily values are available by keyboard and in a table. The recent register opens issued invoices, and saved drafts have their own register view. | Add date-range drill-down from the chart into the invoice register when operators need to reconcile a particular day or period. |
+| Catalogue and stock | Overview opens the first item form, shows on-hand alerts, and links to the filtered catalogue when more items need attention. Staff can receive stock or enter a physical count and see the recorded unit. | Add item-level reorder thresholds and a visible stock history. Purchase orders, supplier receipts, and warehouse transfers need their own records and workflows. |
+| Customers | Overview opens the first customer form. Billing supports directory search and can commit a customer in the same transaction as invoice issuance. CSV preview checks duplicate contacts and invalid rows before import. | Add customer statements after collections can record receipts, allocations, payments against credit, and ageing. |
+| Billing and recovery | Issued sales retain their currency and the print settings captured at issue, with saved template choice and an option to select another template for a reprint. SQLite backup and restore cover the workstation. | Add credit notes and returns with inventory reconciliation. Accounting needs a ledger, expenses, reconciliation, and financial statements. Statutory integrations need IRN and signed QR processing, e-way bills, and return reconciliation. |
+
+The most immediate catalogue improvements were the filtered stock list and shortcuts into first-time customer and item entry. Print settings now travel with newly issued invoices. Older invoices without a settings snapshot continue to use the workstation's print appearance and keep a recorded template where one exists.
+
+### Verification on 25 November 2026
+
+- Windows x64 QA ran with fictitious records in a separate SQLite directory and WebView profile. The WebView used a loopback-only proxy configuration. The installer smoke test reopened the saved workspace and retained Bengali after restart. A separate fixture using earlier SQLite record fields opened its old invoice and resumed an INR GST draft through issuance.
+- The Windows app checked the 7-, 14-, and 30-day chart against SQLite invoice counts and totals. It exercised draft resumption, insufficient-stock rollback, manual and invoice-created customers, stock receiving and physical counts, CSV import preview and re-import, separate INR/USD CSV exports, and backup and restore. USD remained on issued documents after the option was turned off.
+- English, Hindi, and Bengali were checked at 780, 1024, and 1180 CSS pixels. Checks covered language persistence, keyboard access to exact chart values, and loading, error, and retry states. The four invoice templates were printed to software PDFs from the Windows WebView in each language with 75 long item rows. An additional Bengali A6 PDF exercised domestic GST totals.
+- Svelte diagnostics, the production frontend build, and all 22 Rust tests passed. Windows packaging uses NSIS with the WebView2 offline installer. The Windows host already had WebView2 installed, so first-time installation of the runtime on a clean offline host remains a separate check.
+
+Pending hardware checks include a macOS 0.3.0 bundle build and launch, an isolated Mac workflow run and then launch on the user's normal Mac profile, Windows startup and search responsiveness on low-end hardware, and physical A5/A6 paper feed, margins, and print legibility. Windows print-to-PDF was verified through the WebView. The native print dialog could not be inspected on this host.

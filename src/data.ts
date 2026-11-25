@@ -31,7 +31,7 @@ export type Invoice = {
   deliveryAddress: string; payment: string; reference: string; localTaxName: string;
   lines: { name: string; hsn: string; unit: string; quantity: number; price: number; discount: number; rate: number;
     taxable: number; cgst: number; localGst: number; igst: number }[];
-  totals: Totals; blockedReason: string | null; template?: InvoiceTemplate | null; currency?: Currency;
+  totals: Totals; blockedReason: string | null; template?: InvoiceTemplate | null; printSettings?: PrintSettings; currency?: Currency;
 };
 export type RegisterRow = {
   id: string; number: string | null; date: string; customer: string; payment: string; totals: Totals | null; currency?: Currency;
@@ -55,7 +55,7 @@ export const api = {
   updateBusiness: (name: string, address: string, irnRequired: boolean) => invoke<Business>('update_business', { name, address, irnRequired }),
   savePrintSettings: (settings: PrintSettings) => invoke<Business>('save_print_settings', { settings }),
   setUsdOption: (allowed: boolean) => invoke<Business>('set_usd_option', { allowed }),
-  items: (query = '') => invoke<Item[]>('list_items', { query }),
+  items: (query = '', needsAttention = false) => invoke<Item[]>('list_items', { query, needsAttention }),
   customers: (query = '') => invoke<Customer[]>('list_customers', { query }),
   chosenItems: (ids: string[]) => invoke<Item[]>('selected_items', { ids }),
   chosenCustomer: (id: string) => invoke<Customer>('selected_customer', { id }),

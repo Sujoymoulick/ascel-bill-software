@@ -203,13 +203,24 @@ pub fn add_item(db: &Connection, mut data: Item) -> Result<Item> {
     Ok(data)
 }
 
-pub fn items(db: &Connection, query: &str) -> Result<Vec<Item>> {
+pub fn items(db: &Connection, query: &str, needs_attention: bool) -> Result<Vec<Item>> {
     let query = query.trim();
-    let mut statement = db.prepare(
-        "SELECT data,stock FROM items WHERE (?1='' OR instr(lower(name),lower(?1))>0 OR instr(hsn,?1)>0) ORDER BY name COLLATE NOCASE LIMIT ?2",
-    ).map_err(db_error)?;
+    let order = if needs_attention {
+        "stock, name COLLATE NOCASE, id"
+    } else {
+        "name COLLATE NOCASE"
+    };
+    let mut statement = db
+        .prepare(&format!(
+            "SELECT data,stock FROM items
+         WHERE (?1='' OR instr(lower(name),lower(?1))>0 OR instr(hsn,?1)>0)
+           AND (?3 IS NULL OR stock <= ?3)
+         ORDER BY {order} LIMIT ?2"
+        ))
+        .map_err(db_error)?;
+    let threshold = needs_attention.then_some(REORDER_THRESHOLD);
     let records = statement
-        .query_map(params![query, PAGE_SIZE], |row| {
+        .query_map(params![query, PAGE_SIZE, threshold], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, Option<i64>>(1)?))
         })
         .map_err(db_error)?;
@@ -482,25 +493,38 @@ pub fn register(db: &Connection, status: &str, query: &str, page: u32) -> Result
             })
             .collect();
     }
-    let mut statement = db.prepare("SELECT id,data FROM invoices WHERE (?1='' OR instr(lower(number),lower(?1))>0 OR instr(lower(customer),lower(?1))>0) ORDER BY date DESC,rowid DESC LIMIT ?2 OFFSET ?3").map_err(db_error)?;
+    let mut statement = db
+        .prepare(
+            "SELECT id, number, date, customer, payment,
+                json_extract(data, '$.totals'), COALESCE(data -> '$.currency', 'null')
+         FROM invoices
+         WHERE (?1='' OR instr(lower(number),lower(?1))>0 OR instr(lower(customer),lower(?1))>0)
+         ORDER BY date DESC,rowid DESC LIMIT ?2 OFFSET ?3",
+        )
+        .map_err(db_error)?;
     let records = statement
         .query_map(params![query.trim(), PAGE_SIZE, offset], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            Ok((
+                RegisterRow {
+                    id: row.get(0)?,
+                    number: Some(row.get(1)?),
+                    date: row.get(2)?,
+                    customer: row.get(3)?,
+                    payment: row.get(4)?,
+                    totals: None,
+                    currency: Currency::default(),
+                },
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+            ))
         })
         .map_err(db_error)?;
     records
         .map(|record| {
-            let (id, json) = record.map_err(db_error)?;
-            let document: Invoice = parse(&json)?;
-            Ok(RegisterRow {
-                id,
-                customer: customer_name(&document).into(),
-                number: document.number,
-                date: document.date,
-                payment: document.payment,
-                totals: Some(document.totals),
-                currency: document.currency,
-            })
+            let (mut row, totals, currency) = record.map_err(db_error)?;
+            row.totals = Some(parse(&totals)?);
+            row.currency = parse::<Option<Currency>>(&currency)?.unwrap_or_default();
+            Ok(row)
         })
         .collect()
 }

@@ -37,6 +37,7 @@ small { color: var(--muted); }
 .error, .success { padding: 9px 12px; border-radius: 6px; margin-bottom: 11px; line-height: 1.45; }
 .error { background: #fff1e9; color: #823c26; border: 1px solid #ecd0c2; }
 .success { background: var(--pale); color: var(--deep); border: 1px solid #d0e3d3; }
+.load-error { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .help, .panel-note { color: var(--muted); line-height: 1.5; }
 .panel-note { padding: 10px 14px; font-size: 13px; }
 .setup-screen { min-height: 100dvh; display: grid; align-items: center; justify-items: center; padding: 22px; }
@@ -100,6 +101,7 @@ td small { display: block; margin-top: 2px; }
 .invoice-main, .invoice-side { display: grid; align-content: start; gap: 11px; }
 .invoice-side .help { margin-top: 7px; }
 .search-field { position: relative; min-width: 0; }
+.search-field > label { margin-bottom: 5px; }
 .search-control { display: flex; gap: 6px; }
 .search-control button { white-space: nowrap; }
 .lookup-list { position: relative; z-index: 2; display: grid; max-height: 190px; overflow-y: auto; padding: 4px; margin-top: 5px; border: 1px solid var(--line); border-radius: 6px; background: white; }
@@ -171,7 +173,7 @@ dialog::backdrop { background: #182b20a8; }
 .paper-laser-a5 h2, .paper-laser-a6 h2 { font-size: 15px; }
 .paper-laser-a5 .paper-logo, .paper-laser-a6 .paper-logo { max-width: 86px; max-height: 30px; }
 .paper-laser-a5 th, .paper-laser-a5 td, .paper-laser-a6 th, .paper-laser-a6 td { padding: 5px 3px; font-size: inherit; }
-.paper-laser-a5 .numeric, .paper-laser-a6 .numeric { white-space: normal; }
+.paper-unit { white-space: normal; }
 .paper-laser-a6 .paper-header, .paper-laser-a6 .paper-parties, .paper-laser-a6 .paper-footer { gap: 7px; margin-bottom: 7px; }
 .paper-laser-a6 .signature { padding-top: 12px; }
 @media (max-width: 1020px) {
@@ -197,13 +199,15 @@ dialog::backdrop { background: #182b20a8; }
   .dialog-actions { flex-wrap: wrap; }
 }
 @media print {
-  body { min-width: 0; background: white; font-size: 11pt; }
+  :root, body { background: white; }
+  body { min-width: 0; font-size: 11pt; }
   .app-shell, .setup-screen, dialog { display: none !important; }
   dialog::backdrop { background: transparent; }
   .print-only { display: block !important; }
   .invoice-paper { padding: 0; }
   .invoice-paper .table-wrap { overflow: visible; }
-  .paper-header, .paper-parties, .paper-totals, .paper-footer, tr { break-inside: avoid; }
+  .paper-header, .paper-parties, tr { break-inside: avoid; }
+  .paper-summary { display: inline-block; width: 100%; vertical-align: top; break-before: avoid; break-inside: avoid; }
   .print-only.paper-standard, .print-only.paper-ledger { page: invoice-a4; }
   .print-only.paper-laser-a5 { page: invoice-a5; font-size: 9pt; }
   .print-only.paper-laser-a6 { page: invoice-a6; font-size: 8pt; }

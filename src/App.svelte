@@ -22,6 +22,7 @@
     { name: 'Reports and settings', pages: [['reports', 'Sales register'], ['data', 'Backup & restore'], ['settings', 'Settings']] },
   ] as const;
   type Page = typeof sections[number]['pages'][number][0];
+  type RecordsMode = 'add' | 'attention';
   let t = $derived(translator($locale));
 
   let page = $state<Page>('overview');
@@ -33,6 +34,7 @@
   let notice = $state('');
   let noticeValues = $state<Record<string, string | number>>({});
   let error = $state('');
+  let loadError = $state('');
   let rows = $state<RegisterRow[]>([]);
   let metrics = $state<OverviewData | null>(null);
   let registerStatus = $state('issued');
@@ -49,6 +51,7 @@
   let restorePath = $state<string | null>(null);
   let stockItem = $state<Item | null>(null);
   let stockRevision = $state(0);
+  let recordsMode = $state<RecordsMode | null>(null);
   let loadRequest = 0;
 
   onMount(() => {
@@ -77,17 +80,19 @@
     }
   }
 
-  function go(target: Page) {
+  function go(target: Page, mode: RecordsMode | null = null) {
     if (page === 'invoice' && target === 'invoice') return;
     page = target;
+    recordsMode = mode;
     error = '';
+    loadError = '';
     notice = '';
     noticeValues = {};
     restorePath = null;
     loadRequest += 1;
     window.scrollTo(0, 0);
     if (target === 'overview') { metrics = null; rows = []; void overview(); }
-    if (target === 'register') { registerPage = 0; void loadRegister(); }
+    if (target === 'register') { registerPage = 0; rows = []; void loadRegister(); }
     if (target === 'invoice') {
       editorSeed = pendingDraft;
       pendingDraft = null;
@@ -102,6 +107,7 @@
 
   async function overview() {
     const key = ++loadRequest;
+    loadError = '';
     if (!metrics) loadingRows = true;
     try {
       const [stats, latest] = await Promise.all([api.overview(), api.register()]);
@@ -109,7 +115,7 @@
       metrics = stats;
       rows = latest.slice(0, 6);
     } catch (cause) {
-      if (key === loadRequest) error = errorText(cause);
+      if (key === loadRequest) loadError = errorText(cause);
     } finally {
       if (key === loadRequest) loadingRows = false;
     }
@@ -139,13 +145,13 @@
 
   async function loadRegister() {
     const key = ++loadRequest;
-    error = '';
+    loadError = '';
     loadingRows = true;
     try {
       const result = await api.register(registerStatus, registerQuery, registerPage);
       if (key === loadRequest) rows = result;
     } catch (cause) {
-      if (key === loadRequest) error = errorText(cause);
+      if (key === loadRequest) loadError = errorText(cause);
     } finally {
       if (key === loadRequest) loadingRows = false;
     }
@@ -288,11 +294,16 @@
         </label>
       </div>
       {#if error}<p class="error" role="alert">{t(error)}</p>{/if}
+      {#if loadError}
+        <div class="error load-error"><p role="alert">{t(loadError)}</p>
+          <button type="button" onclick={page === 'overview' ? overview : loadRegister}>{t('Retry')}</button>
+        </div>
+      {/if}
       {#if notice}<p class="success" role="status">{t(notice, noticeValues)}</p>{/if}
 
       {#if page === 'overview' && business}
         <Overview data={metrics} loading={loadingRows} canViewUsd={!!business.allowUsd}
-          onnew={() => go('invoice')} oncustomers={() => go('customers')} onitems={() => go('items')} onstock={openStock}/>
+          onnew={() => go('invoice')} oncustomers={(mode) => go('customers', mode)} onitems={(mode) => go('items', mode)} onstock={openStock}/>
         <section class="panel">
           <div class="panel-header"><h2>{t('Recent invoices')}</h2>
             <div class="actions">
@@ -330,7 +341,7 @@
           {/if}
         </section>
       {:else if (page === 'items' || page === 'customers') && business}
-        {#key page}<Records kind={page} {business} {states} onstock={(item) => stockItem = item} {stockRevision}/>{/key}
+        {#key page}<Records kind={page} initialMode={recordsMode} {business} {states} onstock={(item) => stockItem = item} {stockRevision}/>{/key}
       {:else if page === 'reports' && business}
         <header class="page-head"><h1>{t('Sales register')}</h1></header>
         <form class="panel entry-form compact" onsubmit={(event) => { event.preventDefault(); void perform('export'); }}>
@@ -419,7 +430,7 @@
 
 {#snippet registerTable()}
   {#if loadingRows}
-    <p class="empty">{t('Loading invoices…')}</p>
+    <p class="empty" role="status">{t('Loading invoices…')}</p>
   {:else if rows.length}
     <div class="table-wrap"><table>
       <thead><tr><th scope="col">{t('Invoice')}</th><th scope="col">{t('Customer')}</th><th scope="col">{t('Date')}</th><th scope="col">{t('Payment')}</th><th scope="col" class="numeric">{t('Total')}</th><th scope="col"><span class="sr-only">{t('Action')}</span></th></tr></thead>
@@ -429,7 +440,7 @@
           <td><button onclick={() => showRow(row)}>{t(row.number ? 'View' : 'Open draft')}</button></td></tr>
       {/each}</tbody>
     </table></div>
-  {:else}
+  {:else if !loadError}
     <p class="empty">{t(page === 'register' && registerStatus === 'draft' ? 'No saved drafts.' : 'No issued invoices found.')}</p>
   {/if}
 {/snippet}

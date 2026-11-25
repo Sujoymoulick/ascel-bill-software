@@ -1,10 +1,12 @@
-use crate::{model::Result, store::db_error};
+use crate::{
+    model::{Result, REORDER_THRESHOLD},
+    store::db_error,
+};
 use chrono::{Days, NaiveDate};
 use rusqlite::{params, Connection};
 use serde::Serialize;
 
 const PERIOD_DAYS: u64 = 30;
-const REORDER_THRESHOLD: i64 = 5_000;
 const STOCK_ALERT_LIMIT: i64 = 6;
 
 #[derive(Debug, Serialize)]

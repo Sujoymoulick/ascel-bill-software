@@ -111,6 +111,8 @@ export const messages: Record<string, readonly [string, string]> = {
   'Use saved customer': ['सहेजा गया ग्राहक चुनें', 'সেভ করা কাস্টমার বেছে নিন'],
   'Find item': ['आइटम खोजें', 'পণ্য খুঁজুন'],
   'Search name or HSN': ['नाम या HSN से खोजें', 'নাম বা HSN দিয়ে খুঁজুন'],
+  'Low or out of stock only': ['केवल कम या ख़त्म स्टॉक', 'শুধু কম বা শেষ স্টক'],
+  'No items are low or out of stock.': ['किसी आइटम का स्टॉक कम या ख़त्म नहीं है।', 'কোনো আইটেমের স্টক কম বা শেষ হয়নি।'],
   '{count} in stock': ['स्टॉक में {count}', 'স্টকে {count}'],
   'No items found.': ['आइटम नहीं मिले।', 'কোনো পণ্য পাওয়া যায়নি।'],
   'Manage items': ['आइटम सूची खोलें', 'পণ্যের তালিকা খুলুন'],

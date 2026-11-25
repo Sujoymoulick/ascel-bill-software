@@ -175,7 +175,10 @@ fn issue_is_idempotent_and_uses_a_fiscal_year_sequence() {
             .as_deref(),
         Some("INV/26-27/0001")
     );
-    assert_eq!(store::items(&w.db, "").unwrap()[0].stock, Some(2_000));
+    assert_eq!(
+        store::items(&w.db, "", false).unwrap()[0].stock,
+        Some(2_000)
+    );
     assert_eq!(store::dashboard(&w.db).unwrap().invoice_count, 2);
     assert!(store::draft(&w.db, &first).is_err());
 }
@@ -191,7 +194,10 @@ fn failed_stock_check_rolls_back_invoice_stock_and_sequence() {
     assert!(store::issue(&mut w.db, &id, None)
         .unwrap_err()
         .contains("Insufficient stock"));
-    assert_eq!(store::items(&w.db, "").unwrap()[0].stock, Some(1_000));
+    assert_eq!(
+        store::items(&w.db, "", false).unwrap()[0].stock,
+        Some(1_000)
+    );
     assert!(store::invoice(&w.db, &id).unwrap().is_none());
     let mut corrected = store::draft(&w.db, &id).unwrap();
     corrected.lines.pop();
@@ -328,6 +334,7 @@ fn direct_customer_and_template_are_committed_with_the_invoice() {
 
     let preview = store::review(&w.db, &draft).unwrap();
     assert_eq!(preview.template, Some(InvoiceTemplate::LaserA5));
+    assert_eq!(preview.print_settings.as_ref(), Some(&settings));
     assert!(preview.customer.unwrap().id.is_empty());
     assert!(store::customers(&w.db, "").unwrap().is_empty());
     assert!(store::issue(&mut w.db, id, Some(InvoiceTemplate::LaserA6))
@@ -352,9 +359,15 @@ fn direct_customer_and_template_are_committed_with_the_invoice() {
         store::customers(&w.db, "BUYER@ex").unwrap()[0].id,
         customer.id
     );
+    store::save_print_settings(&mut w.db, PrintSettings::default()).unwrap();
+    let reopened = store::invoice(&w.db, id).unwrap().unwrap();
+    assert_eq!(reopened.template, Some(InvoiceTemplate::LaserA6));
     assert_eq!(
-        store::invoice(&w.db, id).unwrap().unwrap().template,
-        Some(InvoiceTemplate::LaserA6)
+        reopened.print_settings,
+        Some(PrintSettings {
+            template: InvoiceTemplate::LaserA6,
+            ..settings
+        })
     );
     assert_eq!(
         store::issue(&mut w.db, id, None)
@@ -365,10 +378,6 @@ fn direct_customer_and_template_are_committed_with_the_invoice() {
         customer.id
     );
     assert_eq!(store::customers(&w.db, "").unwrap().len(), 1);
-    assert_eq!(
-        store::business(&w.db).unwrap().unwrap().print_settings,
-        settings
-    );
     assert_eq!(invoice.seller.print_settings, PrintSettings::default());
 }
 

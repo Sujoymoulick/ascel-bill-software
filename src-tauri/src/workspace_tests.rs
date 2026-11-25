@@ -1,5 +1,8 @@
 use crate::{
-    model::{Business, Currency, DraftInput, Item, LineInput, PrintSettings, StockMode},
+    model::{
+        Business, Currency, DraftInput, Item, LineInput, PrintSettings, StockMode,
+        REORDER_THRESHOLD,
+    },
     overview, store,
 };
 use rusqlite::Connection;
@@ -102,7 +105,7 @@ fn older_workspace_records_default_to_inr_and_leave_usd_disabled() {
     .unwrap();
 
     assert!(!store::business(&db).unwrap().unwrap().allow_usd);
-    assert_eq!(store::items(&db, "").unwrap()[0].usd_price, None);
+    assert_eq!(store::items(&db, "", false).unwrap()[0].usd_price, None);
     assert_eq!(store::draft(&db, &id).unwrap().currency, Currency::Inr);
     assert_eq!(
         store::register(&db, "draft", "", 0).unwrap()[0].currency,
@@ -110,13 +113,14 @@ fn older_workspace_records_default_to_inr_and_leave_usd_disabled() {
     );
     let issued = store::issue(&mut db, &id, None).unwrap();
     db.execute(
-        "UPDATE invoices SET data=json_remove(data,'$.currency','$.seller.allowUsd') WHERE id=?",
+        "UPDATE invoices SET data=json_remove(data,'$.currency','$.seller.allowUsd','$.printSettings') WHERE id=?",
         [&id],
     )
     .unwrap();
 
     let legacy = store::invoice(&db, &id).unwrap().unwrap();
     assert_eq!(legacy.currency, Currency::Inr);
+    assert!(legacy.print_settings.is_none());
     assert_eq!(legacy.number, issued.number);
     assert_eq!(legacy.totals.total, 56_789);
     assert_eq!(
@@ -153,7 +157,7 @@ fn usd_is_opt_in_and_available_only_for_unregistered_businesses() {
         ),
         (0, 0, 0)
     );
-    assert_eq!(store::items(&db, "").unwrap()[0].stock, Some(1_000));
+    assert_eq!(store::items(&db, "", false).unwrap()[0].stock, Some(1_000));
 
     assert!(!store::set_usd_option(&mut db, false).unwrap().allow_usd);
     assert!(store::review(&db, &draft(&item, Currency::Usd)).is_err());
@@ -272,7 +276,7 @@ fn receiving_and_counting_stock_preserve_audit_and_reject_overdrafts() {
     assert!(store::issue(&mut db, &id, None).is_err());
     assert!(store::invoice(&db, &id).unwrap().is_none());
     assert!(store::draft(&db, &id).is_ok());
-    assert_eq!(store::items(&db, "").unwrap()[0].stock, Some(0));
+    assert_eq!(store::items(&db, "", false).unwrap()[0].stock, Some(0));
     assert_eq!(
         stock_audit(&db),
         vec![
@@ -293,6 +297,28 @@ fn receiving_and_counting_stock_preserve_audit_and_reject_overdrafts() {
 }
 
 #[test]
+fn stock_attention_filters_before_paging_and_follows_stock_updates() {
+    let mut db = workspace("");
+    for _ in 0..60 {
+        add_item(&db, Some(REORDER_THRESHOLD + 1));
+    }
+    add_item(&db, None);
+    let low = add_item(&db, Some(REORDER_THRESHOLD));
+    let empty = add_item(&db, Some(0));
+
+    let alerts = store::items(&db, &low.name, true).unwrap();
+    assert_eq!(alerts.len(), 2);
+    assert_eq!(alerts[0].id, empty.id);
+    assert_eq!(alerts[1].id, low.id);
+    assert!(store::items(&db, "missing item", true).unwrap().is_empty());
+
+    store::update_stock(&mut db, &low.id, StockMode::Receive, 1, "").unwrap();
+    let alerts = store::items(&db, "", true).unwrap();
+    assert_eq!(alerts.len(), 1);
+    assert_eq!(alerts[0].id, empty.id);
+}
+
+#[test]
 fn stock_overflow_or_audit_write_failure_leaves_the_previous_count() {
     let mut db = workspace("");
     let item = add_item(&db, Some(1_000_000_000));
@@ -303,6 +329,6 @@ fn stock_overflow_or_audit_write_failure_leaves_the_previous_count() {
     )
     .unwrap();
     assert!(store::update_stock(&mut db, &item.id, StockMode::Count, 1, "Physical stock").is_err());
-    assert_eq!(store::items(&db, "").unwrap()[0].stock, item.stock);
+    assert_eq!(store::items(&db, "", false).unwrap()[0].stock, item.stock);
     assert!(stock_audit(&db).is_empty());
 }

@@ -228,11 +228,10 @@
               <span class="customer-choice">{t('New customer')}</span>
               <button type="button" class="text-button selected-name" onclick={() => selectCustomer(null)}>{t('Use an existing customer or walk-in')}</button>
             {:else}
-            <label>{t('Find customer')}
-              <div class="search-control"><input value={customerQuery} placeholder={customer?.name || t('Walk-in customer')} oninput={(event) => { customerQuery = event.currentTarget.value; void search('customers'); }} maxlength="100">
-                <button type="button" onclick={() => picker === 'customers' ? picker = null : search('customers')}>{t('Browse')}</button>
-              </div>
-            </label>
+            <label for="invoice-find-customer">{t('Find customer')}</label>
+            <div class="search-control"><input id="invoice-find-customer" value={customerQuery} placeholder={customer?.name || t('Walk-in customer')} oninput={(event) => { customerQuery = event.currentTarget.value; void search('customers'); }} maxlength="100">
+              <button type="button" aria-expanded={picker === 'customers'} onclick={() => picker === 'customers' ? picker = null : search('customers')}>{t('Browse')}</button>
+            </div>
             {#if customer}
               <p class="help">{[customer.name, customer.phone, customer.email].filter(Boolean).join(' · ')}</p>
               <button type="button" class="text-button selected-name" onclick={() => selectCustomer(null)}>{t('Use walk-in instead')}</button>
@@ -295,11 +294,10 @@
       <section class="panel">
         <div class="panel-header"><h2>{t('Items')}</h2></div>
         <div class="panel-body search-field">
-          <label>{t('Find item')}
-            <div class="search-control"><input bind:this={itemFilter} value={itemQuery} placeholder={t('Search name or HSN')} oninput={(event) => { itemQuery = event.currentTarget.value; void search('items'); }} maxlength="100">
-              <button type="button" onclick={() => picker === 'items' ? picker = null : search('items')}>{t('Browse')} <kbd>F8</kbd></button>
-            </div>
-          </label>
+          <label for="invoice-find-item">{t('Find item')}</label>
+          <div class="search-control"><input id="invoice-find-item" bind:this={itemFilter} value={itemQuery} placeholder={t('Search name or HSN')} oninput={(event) => { itemQuery = event.currentTarget.value; void search('items'); }} maxlength="100">
+            <button type="button" aria-expanded={picker === 'items'} onclick={() => picker === 'items' ? picker = null : search('items')}>{t('Browse')} <kbd>F8</kbd></button>
+          </div>
           {#if picker === 'items'}
             <div class="lookup-list">
               {#each itemResults as item (item.id)}
