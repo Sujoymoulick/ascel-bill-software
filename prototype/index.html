@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ascel Bill desktop design prototype with sample GST billing workflows.">
+  <title>Ascel Bill · Desktop prototype</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="experience.css">
+  <script src="experience.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#onboarding" id="skip-link">Skip to setup</a>
+  <main id="onboarding" tabindex="-1" aria-label="Workspace setup"></main>
+  <aside class="sidebar" id="workspace-sidebar" hidden>
+    <div class="brand"><span class="brand-mark" aria-hidden="true">₹</span><span>Ascel<span class="brand-accent"> Bill</span></span></div>
+    <div class="shop"><span class="shop-mark" aria-hidden="true">BH</span><div><strong>Bengal Hardware</strong><small>Kolkata, West Bengal</small></div></div>
+    <nav aria-label="Workspace" id="navigation"></nav>
+    <div class="sidebar-footer"><span class="signal" aria-hidden="true"></span><div><strong>Local workspace</strong><small id="workspace-mode">Sample data</small></div></div>
+  </aside>
+  <div class="shell" id="workspace-shell" hidden>
+    <header class="bar">
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div class="bar-end"><button class="btn search-button" data-action="module-search">Search modules <kbd>Ctrl K</kbd></button><span class="prototype-label">Design prototype</span><label class="scenario" id="scenario-control" hidden>Scenario <select id="scenario"><option value="local">Local sale</option><option value="interstate">Interstate sale</option><option value="irn">IRN required</option></select></label></div>
+    </header>
+    <main id="workspace" tabindex="-1"></main>
+  </div>
+  <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>
